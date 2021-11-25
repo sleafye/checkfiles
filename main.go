@@ -20,14 +20,17 @@ type fileDsc struct {
 
 var oFilesMap map[string]*fileDsc = make(map[string]*fileDsc)
 var tFilesMap map[string]*fileDsc = make(map[string]*fileDsc)
+var chO chan int = make(chan int)
 
 // var oFileNumber int = 0
 // var tFileNumber int = 0
 
 func main() {
-	fmt.Println("启动`````")
 
-	// path := "../testgitdiff/"
+	// runtime.GOMAXPROCS(3)
+	// start := time.Now() // 获取当前时间
+
+	fmt.Println("启动`````")
 
 	// p := flag.String("p", "", "配置文件路径，使用json配置，如果不带任何参数会默认读执行文件同级文件夹下cfg.json")
 	o := flag.String("o", "", "原文件或文件夹路径")
@@ -55,8 +58,13 @@ func main() {
 		return
 	}
 
-	BuildFilesMap(*o, oFilesMap)
-	BuildFilesMap(*t, tFilesMap)
+	go GoBuildFilesMap(*o, oFilesMap)
+	go GoBuildFilesMap(*t, tFilesMap)
+	<-chO
+	<-chO
+
+	// BuildFilesMap(*o, oFilesMap)
+	// BuildFilesMap(*t, tFilesMap)
 
 	count := 0
 
@@ -82,9 +90,13 @@ func main() {
 	fmt.Printf("[%s] 文件数量: %d\n", *t, len(tFilesMap))
 
 	fmt.Printf("相同数量: %d \n", count)
+
+	// fmt.Println("该函数执行完成耗时：", time.Since(start))
+
 	input := ""
 	fmt.Printf("输入回车，关闭.....")
 	fmt.Scanln(&input)
+
 }
 
 func run() {
@@ -112,6 +124,11 @@ func GetFileMd5(file string) string {
 	}
 
 	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+func GoBuildFilesMap(path string, filesMap map[string]*fileDsc) {
+	BuildFilesMap(path, filesMap)
+	chO <- 0
 }
 
 func BuildFilesMap(path string, filesMap map[string]*fileDsc) error {
